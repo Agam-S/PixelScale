@@ -1,9 +1,16 @@
 const SCALE = [2,3,4,8] as const;
 type Scale = typeof SCALE[number];
+const ALGORITHMS = [
+  { id: 'nearest', label: 'NEAREST' },
+  { id: 'bicubic', label: 'BICUBIC' },
+] as const;
+type UpscaleAlgorithm = typeof ALGORITHMS[number]['id'];
 
 interface UpscaleControlsProps {
   scale: Scale;
   onChange: (s: Scale) => void;
+  algorithm: UpscaleAlgorithm;
+  onAlgorithmChange: (algorithm: UpscaleAlgorithm) => void;
   processing: boolean;
   imageLoaded: boolean;
   originalSize: { w: number; h: number } | null;
@@ -16,6 +23,8 @@ interface UpscaleControlsProps {
 export default function UpscaleControls({
   scale,
   onChange,
+  algorithm,
+  onAlgorithmChange,
   processing,
   imageLoaded,
   originalSize,
@@ -31,6 +40,24 @@ return (
       <span className="corner-bl" /><span className="corner-br" />
 
       {processing && <div className="processing-bar absolute top-0 left-0 right-0" />}
+
+      <div className="algorithm-tabs" role="tablist" aria-label="Upscale algorithm">
+        {ALGORITHMS.map((entry) => {
+          const active = algorithm === entry.id;
+          return (
+            <button
+              key={entry.id}
+              role="tab"
+              aria-selected={active}
+              className={`algorithm-tab ${active ? 'active' : ''}`}
+              onClick={() => onAlgorithmChange(entry.id)}
+              disabled={processing}
+            >
+              {entry.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex flex-wrap items-center gap-6">
         {/* Label */}

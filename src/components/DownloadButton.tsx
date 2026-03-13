@@ -3,12 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface DownloadButtonProps {
   imageData: ImageData | null;
   scale: number;
+  algorithm: 'nearest' | 'bicubic';
   originalName: string;
 }
 
 export default function DownloadButton({
   imageData,
   scale,
+  algorithm,
   originalName,
 }: DownloadButtonProps) {
   const disabled = !imageData;
@@ -52,7 +54,7 @@ export default function DownloadButton({
       const a = document.createElement("a");
       const base = originalName.replace(/\.png$/i, "");
       a.href = url;
-      a.download = `${base}_${scale}x_upscaled.png`;
+      a.download = `${base}_${scale}x_${algorithm}_upscaled.png`;
       a.click();
       URL.revokeObjectURL(url);
       setDownloadState("complete");
@@ -63,19 +65,19 @@ export default function DownloadButton({
         setDownloadState("armed");
       }, 2200);
     }, "image/png");
-  }, [imageData, scale, originalName]);
+  }, [algorithm, imageData, scale, originalName]);
 
 // labels for the button and hint text change based on the downloadState and whether the button is disabled. 
   const buttonLabel = disabled
-    ? `EXPORT PNG - ${scale}× UPSCALED`
+    ? `EXPORT PNG - ${scale}× ${algorithm.toUpperCase()}`
     : downloadState === "complete"
       ? "PNG EXPORTED"
-      : `EXPORT PNG - ${scale}× UPSCALED`;
+      : `EXPORT PNG - ${scale}× ${algorithm.toUpperCase()}`;
   const hintLabel = disabled
     ? "Load an image to unlock export."
     : downloadState === "complete"
       ? "Export complete."
-      : "Writes a clean PNG with nearest-neighbor scaling only.";
+      : `Writes a clean PNG using ${algorithm} interpolation.`;
 
   return (
     <div className="download-cluster">

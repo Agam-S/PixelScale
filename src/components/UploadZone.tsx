@@ -35,10 +35,22 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
       // create an object URL for the file and load it into an Image object
       const url = URL.createObjectURL(file);
       const img = new Image();
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+      };
       img.onload = () => {
         onImageLoaded(img, file);
-        // revoke the object URL to free memory
-        URL.revokeObjectURL(url);
+        cleanup();
+      };
+      img.onerror = () => {
+        cleanup();
+        setNotice({
+          tone: "error",
+          text: "Decode failed. Try a different PNG source.",
+        });
+      };
+      img.onabort = () => {
+        cleanup();
       };
       img.src = url;
     },
