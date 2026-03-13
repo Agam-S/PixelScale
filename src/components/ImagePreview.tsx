@@ -1,13 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ImagePreviewProps {
   label: string;
   imageData: ImageData | null;
   accentColor: "pink" | "blue";
+  emptyLabel: string;
+  processing?: boolean;
 }
-export default function ImagePreview({ label, imageData, accentColor }: ImagePreviewProps) {
+export default function ImagePreview({ label, imageData, accentColor, emptyLabel, processing = false }: ImagePreviewProps) {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [freshFrame, setFreshFrame] = useState(false);
   const colorVar = accentColor === "pink" ? "var(--neon-pink)" : "var(--neon-blue)";
   const glowClass = accentColor === "pink" ? "glow-pink" : "glow-blue";
 
@@ -32,9 +35,20 @@ export default function ImagePreview({ label, imageData, accentColor }: ImagePre
     if (ctx) ctx.putImageData(imageData, 0, 0);
   }, [imageData]);
 
+  useEffect(() => {
+    if (!imageData) return;
+
+    setFreshFrame(true);
+    const timeout = window.setTimeout(() => {
+      setFreshFrame(false);
+    }, 520);
+
+    return () => window.clearTimeout(timeout);
+  }, [imageData]);
+
   return (
     <div
-      className="glass-panel rounded-sm p-4 flex flex-col gap-3 relative"
+      className={`glass-panel rounded-sm p-4 flex flex-col gap-3 relative preview-panel ${processing ? 'preview-panel-processing' : ''} ${freshFrame ? 'preview-panel-fresh' : ''}`}
       style={{ borderColor: colorVar, boxShadow: `0 0 18px ${colorVar}30, inset 0 0 20px ${colorVar}05` }}
     >
       {/* corner decorations */}
@@ -56,13 +70,15 @@ export default function ImagePreview({ label, imageData, accentColor }: ImagePre
       </div>
 
       {/* Canvas */}
-      <div className="preview-canvas-wrap rounded-sm" style={{
+      <div className={`preview-canvas-wrap rounded-sm ${imageData ? 'preview-ready' : ''} ${processing ? 'preview-processing' : ''}`} style={{
         background: "repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px",
         minHeight: "220px",
       }}>
+        {processing && <div className="preview-processing-overlay" aria-hidden="true" />}
         {imageData ? (
           <canvas
             ref={canvasRef}
+            className={`preview-canvas ${freshFrame ? 'preview-canvas-fresh' : ''}`}
             style={{
               imageRendering: "pixelated",
               maxWidth: "100%",
@@ -77,7 +93,7 @@ export default function ImagePreview({ label, imageData, accentColor }: ImagePre
               <line x1="1" y1="16" x2="31" y2="16" stroke={colorVar} strokeWidth="0.5"/>
               <line x1="16" y1="1" x2="16" y2="31" stroke={colorVar} strokeWidth="0.5"/>
             </svg>
-            <span>NO DATA</span>
+            <span>{emptyLabel}</span>
           </div>
         )}
       </div>

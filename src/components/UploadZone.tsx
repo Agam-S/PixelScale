@@ -4,8 +4,16 @@ interface UploadZoneProps {
   onImageLoaded: (img: HTMLImageElement, file: File) => void;
 }
 
+type UploadNoticeTone = "idle" | "info" | "success" | "error";
+
+const DEFAULT_NOTICE = {
+  tone: "idle" as const,
+  text: "PNG only. Best for pixel art, sprites, UI sheets, and crunchy screenshots.",
+};
+
 export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
   const [dragging, setDragging] = useState(false);
+  const [notice, setNotice] = useState<{ tone: UploadNoticeTone; text: string }>(DEFAULT_NOTICE);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // process the uploaded file, validate it, and create an Image object 
@@ -14,9 +22,16 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
     (file: File) => {
       // validate file type (png)
       if (!file || file.type !== "image/png") {
-        alert("Please upload a valid .png file.");
+        setNotice({
+          tone: "error",
+          text: "Signal rejected. Feed me a PNG so the pixel grid stays crisp.",
+        });
         return;
       }
+      setNotice({
+        tone: "success",
+        text: `Handshake complete: ${file.name}. Rendering source image...`,
+      });
       // create an object URL for the file and load it into an Image object
       const url = URL.createObjectURL(file);
       const img = new Image();
@@ -56,11 +71,26 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
       className={`upload-zone glass-panel rounded-sm p-10 text-center transition-all duration-300 ${
         dragging ? "drag-over" : ""
       }`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+        setNotice({ tone: "info", text: "Drop the PNG and I will duplicate every pixel cleanly." });
+      }}
+      onDragLeave={() => {
+        setDragging(false);
+        setNotice(DEFAULT_NOTICE);
+      }}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
       style={{ cursor: "pointer" }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
     >
       <input
         ref={inputRef}
@@ -71,7 +101,7 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
       />
 
       {/* Icon */}
-      <div className="mb-4 flex justify-center">
+      <div className="mb-4 flex justify-center upload-glyph-wrap">
         <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
           <rect x="1" y="1" width="50" height="50" rx="2"
             stroke="var(--neon-blue)" strokeWidth="1" strokeDasharray="4 3" opacity="0.6"/>
@@ -80,6 +110,7 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
             [0,1,2,3].map(col => (
               <rect
                 key={`${row}-${col}`}
+                className="upload-pixel"
                 x={14 + col * 7}
                 y={14 + row * 7}
                 width="5" height="5"
@@ -109,6 +140,11 @@ export default function UploadZone({ onImageLoaded }: UploadZoneProps) {
       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.75rem", opacity: 0.8 }}>
         ACCEPTS: .PNG ONLY
       </p>
+
+      <div className={`upload-status upload-status-${notice.tone}`} aria-live="polite">
+        <span className="upload-status-dot" />
+        <span>{notice.text}</span>
+      </div>
     </div>
   );
 }
